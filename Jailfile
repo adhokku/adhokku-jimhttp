@@ -1,0 +1,66 @@
+set -e
+
+# Install the dependencies.
+install_jim_tcl_build_deps() {
+    ASSUME_ALWAYS_YES=yes pkg install git pkgconf sqlite3
+}
+
+# Compile Jim Tcl with SQLite support and install it.
+install_jim_tcl() {
+    cd "$TEMP"
+    git clone https://github.com/msteveb/jimtcl.git
+    cd jimtcl
+    git checkout --detach 0.77
+    ./configure \
+            --with-ext="oo tree binary sqlite3" \
+            --enable-utf8 \
+            --ipv6 \
+            --disable-docs
+    make
+    make install
+}
+
+# Create a service that runs the jimhttp example.
+make_rc_file() {
+    rc_file="$1"
+    jimhttp_file="$2"
+    filename="$(basename "$rc_file")"
+
+    mkdir -p "$(dirname "$rc_file")"
+    cat > "$rc_file" <<END
+#! /bin/sh
+# PROVIDE: $filename
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="$filename"
+rcvar="${filename}_enable"
+procname=daemon
+pidfile="/var/run/${filename}_pid"
+
+command="/usr/local/bin/jimsh"
+command_args="-e 'cd [file dirname {$jimhttp_file}]; source {$jimhttp_file}' -p '$PORT'"
+
+start_cmd="/usr/sbin/daemon -r -u app -P '\$pidfile' \$command \$command_args 2>&1 >> /var/log/${filename}.log"
+
+load_rc_config \$name
+run_rc_command "\$1"
+END
+    chmod +x "$rc_file"
+}
+
+main() {
+    install_jim_tcl_build_deps
+    install_jim_tcl
+    make_rc_file /usr/local/etc/rc.d/jimhttp_example /app/vendor/jimhttp/example.tcl
+    echo 'jimhttp_example_enable="YES"' >> /etc/rc.conf
+    pw user add app
+    chown -R app:app /app/
+    service jimhttp_example start
+}
+
+if [ "$IMPORT_ONLY" != "1" ]; then
+    main
+fi
