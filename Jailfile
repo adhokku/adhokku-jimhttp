@@ -61,6 +61,7 @@ main() {
     service jimhttp_example start
 }
 
-if [ "$IMPORT_ONLY" != "1" ]; then
+if [ "$(echo "$IMPORT_ONLY" | tr YES yes)" != "yes" ] && [ "$IMPORT_ONLY" != 1 ]
+then
     main
 fi
