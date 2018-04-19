@@ -17,7 +17,8 @@ git init
 2\. Create the Ansible files needed to run Adhokku commands.
 
 ```shell
-export ADHOKKU_PATH="/etc/ansible/roles/adhokku.adhokku/"
+export ANSIBLE_ROLES_PATH="$HOME/.ansible/roles"
+export ADHOKKU_PATH="$ANSIBLE_ROLES_PATH/adhokku.adhokku"
 sh "$ADHOKKU_PATH/adhokku-tool" init
 ```
 
